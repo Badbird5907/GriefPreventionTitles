@@ -1,3 +1,9 @@
 titles:
   enter:
+    enabled: true
+    title: '<white>%player%''s Claim'
+    subtitle: ''
+  exit:
+    enabled: true
     title: ''
+    subtitle: '<white>Wilderness'

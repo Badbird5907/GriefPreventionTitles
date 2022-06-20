@@ -36,7 +36,11 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
         if (!getDataFolder().exists()) getDataFolder().mkdir();
         if (!new File(getDataFolder(), "config.yml").exists()) saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
+        reloadConfig();
+    }
 
+    @Override
+    public void reloadConfig() {
         String enterBase = "titles.enter";
         if (getConfig().getBoolean(enterBase + ".enabled")) {
             enterTitle = getConfig().getString(enterBase + ".title");

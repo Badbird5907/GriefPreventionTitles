@@ -1,9 +1,11 @@
-titles:
+titles: # https://docs.adventure.kyori.net/minimessage/format.html
   enter:
     enabled: true
     title: '<white>%player%''s Claim'
     subtitle: ''
+    actionbar: ''
   exit:
     enabled: true
     title: ''
     subtitle: '<white>Wilderness'
+    actionbar: ''

@@ -32,6 +32,8 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
     private static String enterSubtitle;
     private static String leaveTitle;
     private static String leaveSubtitle;
+    private static String enterActionbar;
+    private static String leaveActionbar;
     private FileConfiguration config;
 
     @Override
@@ -44,11 +46,13 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
         if (getConfig().getBoolean(enterBase + ".enabled")) {
             enterTitle = getConfig().getString(enterBase + ".title");
             enterSubtitle = getConfig().getString(enterBase + ".subtitle");
+            enterActionbar = getConfig().getString(enterBase + ".actionbar");
         }
         String leaveBase = "titles.exit";
         if (getConfig().getBoolean(leaveBase + ".enabled")) {
             leaveTitle = getConfig().getString(leaveBase + ".title");
             leaveSubtitle = getConfig().getString(leaveBase + ".subtitle");
+            leaveActionbar = getConfig().getString(leaveBase + ".actionbar");
         }
     }
 
@@ -85,16 +89,21 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
         Claim movingTo = GriefPrevention.instance.dataStore.getClaimAt(from, true, cachedClaim);
         if (cachedClaim == null && movingTo != null) { //Entering a claim
             //System.out.println("Entering a claim");
-            Component enter = null, sub = null;
+            Component enter = null, sub = null, action = null;
             if (enterTitle != null && !enterTitle.isEmpty()) {
                 enter = miniMessage.deserialize(enterTitle.replace("%player%", movingTo.getOwnerName()));
             } else enter = Component.empty();
             if (enterSubtitle != null && !enterSubtitle.isEmpty()) {
                 sub = miniMessage.deserialize(enterSubtitle.replace("%player%", movingTo.getOwnerName()));
             } else sub = Component.empty();
+
             claimMap.put(player.getUniqueId(), movingTo);
             Title title = Title.title(enter, sub);
             player.showTitle(title);
+
+            if (enterActionbar != null && !enterActionbar.isEmpty()) {
+                player.sendActionBar(miniMessage.deserialize(enterActionbar.replace("%player%", movingTo.getOwnerName())));
+            }
         } else if (cachedClaim != null && movingTo == null) { //Leaving a claim
             //System.out.println("Leaving a claim");
             Component leave = null, sub = null;
@@ -108,6 +117,10 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
             //System.out.println("Title: " + leave + " | " + sub);
             Title title = Title.title(leave, sub);
             player.showTitle(title);
+
+            if (leaveActionbar != null && !leaveActionbar.isEmpty()) {
+                player.sendActionBar(miniMessage.deserialize(leaveActionbar.replace("%player%", cachedClaim.getOwnerName())));
+            }
         }
     }
 

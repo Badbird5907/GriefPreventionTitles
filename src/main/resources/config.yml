@@ -9,3 +9,12 @@ titles: # https://docs.adventure.kyori.net/minimessage/format.html
     title: ''
     subtitle: '<white>Wilderness'
     actionbar: ''
+
+watched-worlds: # worlds that will be watched
+  enable: false # if enable is false, all worlds will be watched
+  worlds: # worlds that will be watched
+    - world
+    - world_nether
+    - world_the_end
+
+show-on-dimension-switch: true

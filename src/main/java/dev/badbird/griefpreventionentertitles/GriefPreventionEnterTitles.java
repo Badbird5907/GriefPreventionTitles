@@ -6,6 +6,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -85,6 +87,16 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
     }
 
     private void onMove(Player player, Location from, Location to) {
+        World fromWorld = from.getWorld();
+        World toWorld = to.getWorld();
+
+        boolean switchedDimensions = !fromWorld.getName().equals(toWorld.getName());
+        if (switchedDimensions && !getConfig().getBoolean("show-on-dimension-switch", true)) return;
+        if (getConfig().getBoolean("watched-worlds.enable", true)) {
+            List<String> worlds = getConfig().getStringList("watched-worlds.worlds");
+            if (!worlds.contains(toWorld.getName())) return;
+        }
+
         Claim cachedClaim = claimMap.get(player.getUniqueId());
         Claim movingTo = GriefPrevention.instance.dataStore.getClaimAt(from, true, cachedClaim);
         if (cachedClaim == null && movingTo != null) { //Entering a claim

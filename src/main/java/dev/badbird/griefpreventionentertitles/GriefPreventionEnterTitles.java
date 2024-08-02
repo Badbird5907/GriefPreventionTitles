@@ -84,7 +84,7 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
-        System.out.println("Player moved");
+        // System.out.println("Player moved");
         onMove(event.getPlayer(), event.getFrom(), event.getTo());
     }
 

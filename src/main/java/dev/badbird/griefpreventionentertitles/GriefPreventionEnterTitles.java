@@ -84,6 +84,7 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
+        System.out.println("Player moved");
         onMove(event.getPlayer(), event.getFrom(), event.getTo());
     }
 
@@ -103,7 +104,7 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
         boolean switchedDimensions = !fromWorld.getName().equals(toWorld.getName());
         if (switchedDimensions && !getConfig().getBoolean("show-on-dimension-switch", true)) return;
-        if (getConfig().getBoolean("watched-worlds.enable", true)) {
+        if (getConfig().getBoolean("watched-worlds.enable", false)) {
             List<String> worlds = getConfig().getStringList("watched-worlds.worlds");
             if (!worlds.contains(toWorld.getName())) return;
         }
@@ -111,7 +112,9 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
         Claim cachedClaim = claimMap.get(player.getUniqueId());
         Claim movingTo = GriefPrevention.instance.dataStore.getClaimAt(from, true, cachedClaim);
         if (cachedClaim == null && movingTo != null) { //Entering a claim
-            //System.out.println("Entering a claim");
+            // System.out.println("x: " + to.getBlockX() + " y: " + to.getBlockY() + " z: " + to.getBlockZ() + " | " + movingTo + " vs " + cachedClaim);
+
+            // System.out.println("Entering a claim");
             Component enter = null, sub = null, action = null;
             if (enterTitle != null && !enterTitle.isEmpty()) {
                 enter = miniMessage.deserialize(enterTitle.replace("%player%", movingTo.getOwnerName()));
@@ -122,6 +125,7 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
             claimMap.put(player.getUniqueId(), movingTo);
             Title title = Title.title(enter, sub);
+            // System.out.println("Title: " + title);
             // player.showTitle(title);
             adventure().player(player).showTitle(title);
 
@@ -130,7 +134,9 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
                 adventure().player(player).sendActionBar(miniMessage.deserialize(enterActionbar.replace("%player%", movingTo.getOwnerName())));
             }
         } else if (cachedClaim != null && movingTo == null) { //Leaving a claim
-            //System.out.println("Leaving a claim");
+            // System.out.println("x: " + to.getBlockX() + " y: " + to.getBlockY() + " z: " + to.getBlockZ() + " | " + movingTo + " vs " + cachedClaim);
+
+            // System.out.println("Leaving a claim");
             Component leave = null, sub = null;
             if (leaveTitle != null && !leaveTitle.isEmpty()) {
                 leave = miniMessage.deserialize(leaveTitle.replace("%player%", cachedClaim.getOwnerName()));

@@ -111,7 +111,10 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
         Claim cachedClaim = claimMap.get(player.getUniqueId());
         Claim movingTo = GriefPrevention.instance.dataStore.getClaimAt(from, true, cachedClaim);
-        if (cachedClaim == null && movingTo != null) { //Entering a claim
+        if (cachedClaim == null && movingTo != null) { // Entering a claim
+            if (movingTo.isAdminClaim() && !getConfig().getBoolean("show-on-admin-claim", true)) {
+                return;
+            }
             // System.out.println("x: " + to.getBlockX() + " y: " + to.getBlockY() + " z: " + to.getBlockZ() + " | " + movingTo + " vs " + cachedClaim);
 
             // System.out.println("Entering a claim");
@@ -133,7 +136,10 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
                 // player.sendActionBar(miniMessage.deserialize(enterActionbar.replace("%player%", movingTo.getOwnerName())));
                 adventure().player(player).sendActionBar(miniMessage.deserialize(enterActionbar.replace("%player%", movingTo.getOwnerName())));
             }
-        } else if (cachedClaim != null && movingTo == null) { //Leaving a claim
+        } else if (cachedClaim != null && movingTo == null) { // Leaving a claim
+            if (cachedClaim.isAdminClaim() && !getConfig().getBoolean("show-on-admin-claim", true)) {
+                return;
+            }
             // System.out.println("x: " + to.getBlockX() + " y: " + to.getBlockY() + " z: " + to.getBlockZ() + " | " + movingTo + " vs " + cachedClaim);
 
             // System.out.println("Leaving a claim");

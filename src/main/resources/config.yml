@@ -18,3 +18,4 @@ watched-worlds: # worlds that will be watched
     - world_the_end
 
 show-on-dimension-switch: true
+show-on-admin-claim: true # Should we show a title for admin claims?

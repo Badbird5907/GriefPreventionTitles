@@ -3,7 +3,7 @@ plugins {
     id("io.github.goooler.shadow") version "8.1.8"
 }
 group = "dev.badbird"
-version = "1.3.0"
+version = "1.4.0"
 val jarName = "GriefPreventionTitles"
 
 repositories {
@@ -12,6 +12,10 @@ repositories {
     maven {
         name = "papermc"
         url = uri("https://repo.papermc.io/repository/maven-public/")
+    }
+    maven {
+        name = "jitpack"
+        url = uri("https://jitpack.io")
     }
 }
 

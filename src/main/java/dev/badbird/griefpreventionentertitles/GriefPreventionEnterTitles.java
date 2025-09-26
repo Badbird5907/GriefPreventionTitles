@@ -5,8 +5,12 @@ import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -19,14 +23,19 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-public final class GriefPreventionEnterTitles extends JavaPlugin implements Listener {
+public final class GriefPreventionEnterTitles extends JavaPlugin implements Listener, CommandExecutor {
 
     private static Map<UUID, Claim> claimMap = new HashMap<>();
+    private static Set<UUID> disabledUsers = new HashSet<>();
+    private File disabledDirectory;
 
     private static MiniMessage miniMessage;
 
@@ -43,7 +52,18 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
         miniMessage = MiniMessage.miniMessage();
         if (!getDataFolder().exists()) getDataFolder().mkdir();
         if (!new File(getDataFolder() + "/config.yml").exists()) saveDefaultConfig();
+        
+        // Create disabled directory
+        disabledDirectory = new File(getDataFolder(), "disabled");
+        if (!disabledDirectory.exists()) {
+            disabledDirectory.mkdirs();
+        }
+        
         getServer().getPluginManager().registerEvents(this, this);
+        
+        // Register command executor
+        getCommand("toggleclaimtitles").setExecutor(this);
+        
         String enterBase = "titles.enter";
         if (getConfig().getBoolean(enterBase + ".enabled")) {
             enterTitle = getConfig().getString(enterBase + ".title");
@@ -79,12 +99,23 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        claimMap.put(e.getPlayer().getUniqueId(), GriefPrevention.instance.dataStore.getClaimAt(e.getPlayer().getLocation(), true, null));
+        UUID playerUuid = e.getPlayer().getUniqueId();
+        claimMap.put(playerUuid, GriefPrevention.instance.dataStore.getClaimAt(e.getPlayer().getLocation(), true, null));
+        
+        // Check if player has titles disabled and cache the result
+        File userFile = new File(disabledDirectory, playerUuid.toString());
+        if (userFile.exists()) {
+            disabledUsers.add(playerUuid);
+        } else {
+            disabledUsers.remove(playerUuid); // Ensure they're not in the set if file doesn't exist
+        }
     }
 
     @EventHandler
     public void onLeave(PlayerQuitEvent event) {
-        claimMap.remove(event.getPlayer().getUniqueId());
+        UUID playerUuid = event.getPlayer().getUniqueId();
+        claimMap.remove(playerUuid);
+        disabledUsers.remove(playerUuid); // Clean up cache when player leaves
     }
 
     private void onMove(Player player, Location from, Location to) {
@@ -104,6 +135,13 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
             if (movingTo.isAdminClaim() && !getConfig().getBoolean("show-on-admin-claim", true)) {
                 return;
             }
+            
+            // Check if player has disabled titles
+            if (isTitlesDisabled(player.getUniqueId())) {
+                claimMap.put(player.getUniqueId(), movingTo); // Still update the claim map
+                return;
+            }
+            
             // System.out.println("x: " + to.getBlockX() + " y: " + to.getBlockY() + " z: " + to.getBlockZ() + " | " + movingTo + " vs " + cachedClaim);
 
             // System.out.println("Entering a claim");
@@ -129,6 +167,13 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
             if (cachedClaim.isAdminClaim() && !getConfig().getBoolean("show-on-admin-claim", true)) {
                 return;
             }
+            
+            // Check if player has disabled titles
+            if (isTitlesDisabled(player.getUniqueId())) {
+                claimMap.remove(player.getUniqueId()); // Still update the claim map
+                return;
+            }
+            
             // System.out.println("x: " + to.getBlockX() + " y: " + to.getBlockY() + " z: " + to.getBlockZ() + " | " + movingTo + " vs " + cachedClaim);
 
             // System.out.println("Leaving a claim");
@@ -155,5 +200,68 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+    }
+    
+    /**
+     * Check if a player has titles disabled
+     * @param playerUuid The player's UUID
+     * @return true if titles are disabled for this player
+     */
+    private boolean isTitlesDisabled(UUID playerUuid) {
+        return disabledUsers.contains(playerUuid);
+    }
+    
+    /**
+     * Toggle titles for a player
+     * @param playerUuid The player's UUID
+     * @return true if titles are now enabled, false if now disabled
+     */
+    private boolean toggleTitles(UUID playerUuid) {
+        File userFile = new File(disabledDirectory, playerUuid.toString());
+        
+        if (disabledUsers.contains(playerUuid)) {
+            // Currently disabled, enable titles
+            disabledUsers.remove(playerUuid);
+            if (userFile.exists()) {
+                userFile.delete();
+            }
+            return true; // Now enabled
+        } else {
+            // Currently enabled, disable titles
+            disabledUsers.add(playerUuid);
+            try {
+                userFile.createNewFile(); // Create empty file
+            } catch (IOException e) {
+                getLogger().warning("Could not create disabled file for player " + playerUuid + ": " + e.getMessage());
+            }
+            return false; // Now disabled
+        }
+    }
+    
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "This command can only be used by players.");
+            return true;
+        }
+        
+        Player player = (Player) sender;
+        
+        if (!player.hasPermission("gptitles.toggle")) {
+            player.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            return true;
+        }
+        
+        if (command.getName().equalsIgnoreCase("toggleclaimtitles")) {
+            boolean nowEnabled = toggleTitles(player.getUniqueId());
+            if (nowEnabled) {
+                player.sendMessage(ChatColor.GREEN + "Claim titles are now enabled!");
+            } else {
+                player.sendMessage(ChatColor.YELLOW + "Claim titles are now disabled!");
+            }
+            return true;
+        }
+        
+        return false;
     }
 }

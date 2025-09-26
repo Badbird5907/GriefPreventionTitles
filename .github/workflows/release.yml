@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: 17
+        distribution: 'temurin'
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build --no-daemon
+
+    - name: Get version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Get previous tag
+      id: prev_tag
+      run: |
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
+
+    - name: Generate release notes from commits
+      id: release_notes
+      run: |
+        if [ -n "${{ steps.prev_tag.outputs.PREV_TAG }}" ]; then
+          # Get commits since last tag
+          COMMITS=$(git log --pretty=format:"- %s" ${{ steps.prev_tag.outputs.PREV_TAG }}..HEAD)
+        else
+          # If no previous tag, get all commits
+          COMMITS=$(git log --pretty=format:"- %s")
+        fi
+        
+        # Create release body
+        cat << EOF > release_body.md
+        ## Changes in this release
+        
+        $COMMITS
+        
+        ## Installation
+        1. Download \`GriefPreventionTitles.jar\` from the assets below
+        2. Place it in your server's \`plugins\` directory
+        3. Restart your server
+        4. Configure as needed in \`plugins/GriefPreventionEnterTitles/config.yml\`
+        EOF
+        
+        echo "RELEASE_BODY<<EOF" >> $GITHUB_OUTPUT
+        cat release_body.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: ${{ steps.release_notes.outputs.RELEASE_BODY }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./build/libs/GriefPreventionTitles.jar
+        asset_name: GriefPreventionTitles.jar
+        asset_content_type: application/java-archive

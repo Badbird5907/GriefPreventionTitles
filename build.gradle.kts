@@ -3,7 +3,7 @@ plugins {
     id("io.github.goooler.shadow") version "8.1.8"
 }
 group = "dev.badbird"
-version = "1.3.0"
+version = "1.4.0"
 val jarName = "GriefPreventionTitles"
 
 repositories {

@@ -3,3 +3,14 @@ version: '${project.version}'
 main: dev.badbird.griefpreventionentertitles.GriefPreventionEnterTitles
 api-version: 1.18
 depend: [GriefPrevention]
+
+commands:
+  toggleclaimtitles:
+    description: Toggle claim titles display for yourself
+    usage: /toggleclaimtitles
+    permission: gptitles.toggle
+
+permissions:
+  gptitles.toggle:
+    description: Allows players to toggle claim titles display
+    default: true

@@ -53,12 +53,11 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
         if (!getDataFolder().exists()) getDataFolder().mkdir();
         if (!new File(getDataFolder() + "/config.yml").exists()) saveDefaultConfig();
         
-        // Create disabled directory and load existing disabled users
+        // Create disabled directory
         disabledDirectory = new File(getDataFolder(), "disabled");
         if (!disabledDirectory.exists()) {
             disabledDirectory.mkdirs();
         }
-        loadDisabledUsers();
         
         getServer().getPluginManager().registerEvents(this, this);
         
@@ -100,12 +99,23 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
-        claimMap.put(e.getPlayer().getUniqueId(), GriefPrevention.instance.dataStore.getClaimAt(e.getPlayer().getLocation(), true, null));
+        UUID playerUuid = e.getPlayer().getUniqueId();
+        claimMap.put(playerUuid, GriefPrevention.instance.dataStore.getClaimAt(e.getPlayer().getLocation(), true, null));
+        
+        // Check if player has titles disabled and cache the result
+        File userFile = new File(disabledDirectory, playerUuid.toString());
+        if (userFile.exists()) {
+            disabledUsers.add(playerUuid);
+        } else {
+            disabledUsers.remove(playerUuid); // Ensure they're not in the set if file doesn't exist
+        }
     }
 
     @EventHandler
     public void onLeave(PlayerQuitEvent event) {
-        claimMap.remove(event.getPlayer().getUniqueId());
+        UUID playerUuid = event.getPlayer().getUniqueId();
+        claimMap.remove(playerUuid);
+        disabledUsers.remove(playerUuid); // Clean up cache when player leaves
     }
 
     private void onMove(Player player, Location from, Location to) {
@@ -190,24 +200,6 @@ public final class GriefPreventionEnterTitles extends JavaPlugin implements List
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-    }
-    
-    /**
-     * Load existing disabled users from the disabled directory
-     */
-    private void loadDisabledUsers() {
-        disabledUsers.clear();
-        File[] files = disabledDirectory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                try {
-                    UUID uuid = UUID.fromString(file.getName());
-                    disabledUsers.add(uuid);
-                } catch (IllegalArgumentException e) {
-                    // Invalid UUID filename, ignore
-                }
-            }
-        }
     }
     
     /**
